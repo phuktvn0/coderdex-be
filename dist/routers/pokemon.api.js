@@ -120,11 +120,10 @@ pokemonRouter.put("/:id", (req, res, next) => {
             throw (0, http_errors_1.default)("Missing data");
         }
         id = Math.floor(id);
-        if (types) {
-            if (!types.filter((x) => pokemonTypes.includes(x.toLowerCase()))
-                .length) {
-                throw (0, http_errors_1.default)("Pokemon type is invalid.");
-            }
+        let newPokemonTypes = [types[0] || "", types[1] || ""];
+        newPokemonTypes = newPokemonTypes.filter((x) => pokemonTypes.includes(x.toLowerCase().trim()));
+        if (!newPokemonTypes.length) {
+            throw (0, http_errors_1.default)(`Pokemon types invalid`);
         }
         //Read data from db.json then parse to JSobject
         const pokemonJS = fs_1.default.readFileSync(pokemonFilePath, "utf-8");
@@ -138,7 +137,7 @@ pokemonRouter.put("/:id", (req, res, next) => {
         pokemonList.forEach((x) => {
             if (x.id === id) {
                 name ? (x.name = name) : (x.name = x.name);
-                types ? (x.types = types) : (x.types = x.types);
+                types ? (x.types = newPokemonTypes) : (x.types = x.types);
                 urlImg ? (x.url = urlImg) : (x.url = x.url);
             }
         });
