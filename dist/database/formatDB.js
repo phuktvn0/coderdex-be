@@ -31,42 +31,30 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-const csvtojson_1 = __importDefault(require("csvtojson"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const pokemonData = () => __awaiter(void 0, void 0, void 0, function* () {
-    //   interface newData {
-    //     id?: Number;
-    //     Name: String;
-    //     Type1: String;
-    //     Type2?: String;
-    //     url?: String;
-    //   }
-    //   interface newDataList extends Array<newData> {}
-    let newData = yield (0, csvtojson_1.default)().fromFile("./database/pokemon.csv");
+    let dataOne = fs.readFileSync(path.join(__dirname, "../moreinfo.json"));
+    dataOne = JSON.parse(dataOne);
     //   console.log(newData);
-    newData = newData.slice(0, 721);
-    newData = newData.map((e, i) => {
+    dataOne = dataOne.slice(0, 721);
+    dataOne = dataOne.map((e, i) => {
+        let types = e.type.map((x) => x.toLowerCase().trim());
         i += 1;
-        const types = [];
-        if (e.Type2) {
-            types.push(e.Type1.toLowerCase(), e.Type2.toLowerCase());
-        }
-        else {
-            types.push(e.Type1.toLowerCase());
-        }
         return {
             id: i,
-            name: e.Name,
+            name: e.name,
+            description: e.description,
+            height: e.height,
+            weight: e.weight,
+            category: e.category,
+            abilities: e.abilities,
             types: types,
-            url: `http://localhost:5000/images/${i}.png`,
+            url: `http://localhost:8000/images/${i}.png`,
         };
     });
-    //   console.log(newData);
+    let newData = dataOne;
     let data = fs.readFileSync(path.join(__dirname, "../db.json"));
     data = JSON.parse(data);
     data.pokemon = [];

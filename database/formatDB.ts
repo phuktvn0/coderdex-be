@@ -3,33 +3,38 @@ import * as fs from "fs";
 import * as path from "path";
 
 const pokemonData = async () => {
-  //   interface newData {
-  //     id?: Number;
-  //     Name: String;
-  //     Type1: String;
-  //     Type2?: String;
-  //     url?: String;
-  //   }
-  //   interface newDataList extends Array<newData> {}
-  let newData = await csv().fromFile("./database/pokemon.csv");
+  interface inforPokemon {
+    id: number;
+    name: string;
+    description?: string;
+    height?: string;
+    weight?: string;
+    category?: string;
+    abilities?: Array<string>;
+    types: Array<string>;
+    url: string;
+  }
+  let dataOne: any = fs.readFileSync(path.join(__dirname, "../moreinfo.json"));
+  dataOne = JSON.parse(dataOne);
   //   console.log(newData);
-  newData = newData.slice(0, 721);
-  newData = newData.map((e, i) => {
+  dataOne = dataOne.slice(0, 721);
+  dataOne = dataOne.map((e, i) => {
+    let types = e.type.map((x) => x.toLowerCase().trim());
     i += 1;
-    const types: Array<string> = [];
-    if (e.Type2) {
-      types.push(e.Type1.toLowerCase(), e.Type2.toLowerCase());
-    } else {
-      types.push(e.Type1.toLowerCase());
-    }
     return {
       id: i,
-      name: e.Name,
+      name: e.name,
+      description: e.description,
+      height: e.height,
+      weight: e.weight,
+      category: e.category,
+      abilities: e.abilities,
       types: types,
-      url: `http://localhost:5000/images/${i}.png`,
+      url: `http://localhost:8000/images/${i}.png`,
     };
   });
-  //   console.log(newData);
+  let newData: Array<inforPokemon> = dataOne;
+
   let data: any = fs.readFileSync(path.join(__dirname, "../db.json"));
   data = JSON.parse(data);
   data.pokemon = [];

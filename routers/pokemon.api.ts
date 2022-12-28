@@ -3,10 +3,13 @@ import fs from "fs";
 import createError from "http-errors";
 import httpStatus from "http-status";
 import path from "path";
-import Joi, { array, types } from "joi";
+import {
+  getPokemonQuerySchema,
+  postPokemonDataSchema,
+  putPokemonDataSchema,
+} from "./validators/pokemon.validators";
 
 function checkNumbers(K: string) {
-  // console.log(/^\d+$/.test(K));
   return /^\d+$/.test(K);
 }
 
@@ -40,6 +43,77 @@ interface inforPokemon {
   url: string;
 }
 
+// get one pokemon
+pokemonRouter.get(
+  "/:id",
+  (
+    req: express.Request<{ id: number }>,
+    res: express.Response,
+    next: express.NextFunction
+  ) => {
+    try {
+      let { id } = req.params;
+      id = Math.floor(id);
+      //Read data from db.json then parse to JSobject
+      const pokemonJS = fs.readFileSync(pokemonFilePath, "utf-8");
+      let pokemonDB: object = JSON.parse(pokemonJS);
+      const pokemonList: Array<inforPokemon> = pokemonDB["pokemon"];
+      const totalPokemon: number = parseInt(pokemonDB["totalPokemon"]) - 1;
+
+      if (!pokemonList.find((x) => x.id === id)) {
+        throw createError("Pokemon not found.");
+      }
+
+      let pokemon: inforPokemon;
+      let nextPokemon: inforPokemon;
+      let previousPokemon: inforPokemon;
+      const pokemonIndex = pokemonList.findIndex((x) => x.id === id);
+      // console.log(pokemonIndex, totalPokemon);
+      if (pokemonIndex === 0) {
+        nextPokemon = pokemonList[pokemonIndex + 1];
+        pokemon = pokemonList[pokemonIndex];
+        previousPokemon = pokemonList[totalPokemon];
+      } else if (pokemonIndex === totalPokemon) {
+        nextPokemon = pokemonList[0];
+        pokemon = pokemonList[pokemonIndex];
+        previousPokemon = pokemonList[pokemonIndex - 1];
+      } else {
+        nextPokemon = pokemonList[pokemonIndex + 1];
+        pokemon = pokemonList[pokemonIndex];
+        previousPokemon = pokemonList[pokemonIndex - 1];
+      }
+
+      const responseData = { data: { pokemon, nextPokemon, previousPokemon } };
+      // switch (pokemonIndex) {
+      //   case 0:
+      //     responseData = [
+      //       pokemonList[totalPokemon],
+      //       pokemonList[pokemonIndex],
+      //       pokemonList[pokemonIndex + 1],
+      //     ];
+      //     break;
+      //   case totalPokemon:
+      //     responseData = [
+      //       pokemonList[pokemonIndex - 1],
+      //       pokemonList[pokemonIndex],
+      //       pokemonList[0],
+      //     ];
+      //   default:
+      //     responseData = [
+      //       pokemonList[pokemonIndex - 1],
+      //       pokemonList[pokemonIndex],
+      //       pokemonList[pokemonIndex + 1],
+      //     ];
+      //     break;
+      // }
+
+      res.status(200).send(responseData);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // put data pokemon
 pokemonRouter.put(
   "/:id",
@@ -50,31 +124,31 @@ pokemonRouter.put(
       {
         name: string;
         types: Array<string>;
-        url: string;
+        urlImg: string;
       }
     >,
     res: express.Response,
     next: express.NextFunction
   ) => {
     try {
+      const { error, value } = putPokemonDataSchema.validate(req.body);
+      if (error) {
+        throw createError(httpStatus.BAD_REQUEST, error.message);
+      }
       let { id } = req.params;
-      const { name, types, url } = req.body;
+      const { name, types, urlImg } = value;
 
-      if (!name && !types && !url) {
-        throw new Error("Missing data");
+      if (!name && !types && !urlImg) {
+        throw createError("Missing data");
       }
       id = Math.floor(id);
 
-      // 1 or 2 types
       if (types) {
-        if (types.length > 2) {
-          throw new Error("Pokemon can only have one or two types.");
-        }
         if (
           !types.filter((x: string) => pokemonTypes.includes(x.toLowerCase()))
             .length
         ) {
-          throw new Error("Pokemon type is invalid.");
+          throw createError("Pokemon type is invalid.");
         }
       }
 
@@ -85,7 +159,7 @@ pokemonRouter.put(
 
       // Pokemon not found
       if (!pokemonList.find((x) => x.id === id)) {
-        throw new Error("Pokemon not found");
+        throw createError("Pokemon not found");
       }
 
       // new pokemon data
@@ -93,7 +167,7 @@ pokemonRouter.put(
         if (x.id === id) {
           name ? (x.name = name) : (x.name = x.name);
           types ? (x.types = types) : (x.types = x.types);
-          url ? (x.url = url) : (x.url = x.url);
+          urlImg ? (x.url = urlImg) : (x.url = x.url);
         }
       });
 
@@ -127,7 +201,7 @@ pokemonRouter.delete(
 
       // Pokemon not found
       if (!pokemonList.find((x) => x.id === parseInt(id))) {
-        throw new Error("Pokemon not found");
+        throw createError("Pokemon not found");
       }
 
       const pokemonDelete = pokemonList.find((x) => x.id === parseInt(id));
@@ -166,17 +240,12 @@ pokemonRouter.post(
     next: express.NextFunction
   ) => {
     try {
-      const { id, name, types, url } = req.body;
-
-      // requied data
-      if (!id || !name || !types || !url) {
-        throw new Error("Missing required data.");
+      const { error, value } = postPokemonDataSchema.validate(req.body);
+      if (error) {
+        throw createError(httpStatus.BAD_REQUEST, error.message);
       }
-
-      // 1 or 2 types
-      if (types.length > 2) {
-        throw new Error("Pokemon can only have one or two types.");
-      }
+      const { id, name, types, url } = value;
+      const newId: number = parseInt(id);
 
       let newPokemonType: Array<string> = [
         types[0].toLowerCase().trim() || "",
@@ -187,7 +256,7 @@ pokemonRouter.post(
         pokemonTypes.includes(x)
       );
       if (!newPokemonType.length) {
-        throw new Error("Pokemon type is invalid.");
+        throw createError("Pokemon type is invalid.");
       }
 
       //Read data from db.json then parse to JSobject
@@ -197,13 +266,13 @@ pokemonRouter.post(
       // console.log(pokemon);
 
       // check pokemon exists by id or by name
-      if (pokemonList.find((x) => x.id === id || x.name === name)) {
-        throw new Error("Pokemon exists");
+      if (pokemonList.find((x) => x.id === newId || x.name === name)) {
+        throw createError("Pokemon exists");
       }
 
       // new Pokemon
       const newPokemon: inforPokemon = {
-        id,
+        id: newId,
         name,
         types: newPokemonType,
         url,
@@ -243,19 +312,20 @@ pokemonRouter.get(
   ) => {
     const allowedFilters = ["types", "search", "page", "limit"];
     try {
-      let { page, limit, ...filterQuery } = req.query;
       // default value
-      page = Math.floor(page) || 1;
-      limit = Math.floor(limit) || 20;
+      const { error, value } = getPokemonQuerySchema.validate(req.query);
+      if (error) {
+        throw createError(httpStatus.BAD_REQUEST, error.message);
+      }
 
+      let { page, limit, ...filterQuery } = value;
       // check filter query
       const filterKeys = Object.keys(filterQuery);
 
       filterKeys.forEach((key: string) => {
         if (!allowedFilters.includes(key)) {
-          throw new Error(`Query ${key} is not allowed`);
+          throw createError(`Query ${key} is not allowed`);
         }
-        if (!filterQuery[key]) delete filterQuery[key];
       });
 
       //Number of items skip for selection
@@ -264,7 +334,7 @@ pokemonRouter.get(
       //Read data from db.json then parse to JSobject
       const pokemonJS = fs.readFileSync(pokemonFilePath, "utf-8");
       let pokemonDB: object = JSON.parse(pokemonJS);
-      const pokemon: Array<inforPokemon> = pokemonDB["pokemon"];
+      const pokemonList: Array<inforPokemon> = pokemonDB["pokemon"];
 
       //Filter data by name, type, id
       let result: Array<inforPokemon> = [];
@@ -274,34 +344,37 @@ pokemonRouter.get(
           let filterValue = filterQuery[condition as keyof typeof filterQuery];
 
           filterValue = filterValue.toLowerCase().trim();
+          // console.log(filterValue);
 
           switch (condition) {
             case "search":
               if (checkNumbers(filterValue)) {
                 result = result.length
-                  ? result.filter((x) => x["id"] === parseInt(filterValue))
-                  : pokemon.filter((x) => x["id"] === parseInt(filterValue));
+                  ? result.filter((x) => x.id === parseInt(filterValue))
+                  : pokemonList.filter((x) => x.id === parseInt(filterValue));
               } else {
                 result = result.length
-                  ? result.filter((x) => x["name"].includes(filterValue))
-                  : pokemon.filter((x) => x["name"].includes(filterValue));
+                  ? result.filter((x) => x.name.includes(filterValue))
+                  : pokemonList.filter((x) => x.name.includes(filterValue));
               }
               break;
             case "types":
               result = result.length
-                ? result.filter((x) => x["types"].includes(filterValue))
-                : pokemon.filter((x) => x["types"].includes(filterValue));
+                ? result.filter((x) => x.types.includes(filterValue))
+                : pokemonList.filter((x) => x.types.includes(filterValue));
               break;
             default:
               result = result.length
                 ? result.filter((x) => x[condition] === filterValue)
-                : pokemon.filter((x) => x[condition] === filterValue);
+                : pokemonList.filter((x) => x[condition] === filterValue);
           }
         });
       } else {
-        result = pokemon;
+        result = pokemonList;
       }
-
+      if (result.length === 0) {
+        throw createError("Pokemon Not Found");
+      }
       // select number of result by offset
       result = result.slice(offset, offset + limit);
 
