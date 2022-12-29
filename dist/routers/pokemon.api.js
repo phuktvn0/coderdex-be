@@ -120,10 +120,15 @@ pokemonRouter.put("/:id", (req, res, next) => {
             throw (0, http_errors_1.default)("Missing data");
         }
         id = Math.floor(id);
-        let newPokemonTypes = [types[0] || "", types[1] || ""];
-        newPokemonTypes = newPokemonTypes.filter((x) => pokemonTypes.includes(x.toLowerCase().trim()));
-        if (!newPokemonTypes.length) {
-            throw (0, http_errors_1.default)(`Pokemon types invalid`);
+        let newPokemonTypes = [];
+        if (types) {
+            const type1 = types[0] || "";
+            const type2 = types[1] || "";
+            newPokemonTypes = [type1, type2];
+            newPokemonTypes = newPokemonTypes.filter((x) => pokemonTypes.includes(x.toLowerCase().trim()));
+            if (!newPokemonTypes.length) {
+                throw (0, http_errors_1.default)(`Pokemon types invalid`);
+            }
         }
         //Read data from db.json then parse to JSobject
         const pokemonJS = fs_1.default.readFileSync(pokemonFilePath, "utf-8");

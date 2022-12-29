@@ -142,14 +142,19 @@ pokemonRouter.put(
         throw createError("Missing data");
       }
       id = Math.floor(id);
-
-      let newPokemonTypes: Array<string> = [types[0] || "", types[1] || ""];
-      newPokemonTypes = newPokemonTypes.filter((x) =>
-        pokemonTypes.includes(x.toLowerCase().trim())
-      );
-      if (!newPokemonTypes.length) {
-        throw createError(`Pokemon types invalid`);
+      let newPokemonTypes: Array<string> = [];
+      if (types) {
+        const type1: string = types[0] || "";
+        const type2: string = types[1] || "";
+        newPokemonTypes = [type1, type2];
+        newPokemonTypes = newPokemonTypes.filter((x) =>
+          pokemonTypes.includes(x.toLowerCase().trim())
+        );
+        if (!newPokemonTypes.length) {
+          throw createError(`Pokemon types invalid`);
+        }
       }
+
       //Read data from db.json then parse to JSobject
       const pokemonJS = fs.readFileSync(pokemonFilePath, "utf-8");
       let pokemonDB: object = JSON.parse(pokemonJS);
