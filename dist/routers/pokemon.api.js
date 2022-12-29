@@ -178,6 +178,7 @@ pokemonRouter.delete("/:id", (req, res, next) => {
 });
 // post new pokemon
 pokemonRouter.post("/", (req, res, next) => {
+    var _a, _b;
     try {
         const { error, value } = pokemon_validators_1.postPokemonDataSchema.validate(req.body);
         if (error) {
@@ -186,8 +187,8 @@ pokemonRouter.post("/", (req, res, next) => {
         const { id, name, types, url } = value;
         const newId = parseInt(id);
         let newPokemonType = [
-            types[0].toLowerCase().trim() || "",
-            types[1].toLowerCase().trim() || "",
+            ((_a = types[0]) === null || _a === void 0 ? void 0 : _a.toLowerCase().trim()) || "",
+            ((_b = types[1]) === null || _b === void 0 ? void 0 : _b.toLowerCase().trim()) || "",
         ];
         newPokemonType = newPokemonType.filter((x) => pokemonTypes.includes(x));
         if (!newPokemonType.length) {
@@ -197,7 +198,6 @@ pokemonRouter.post("/", (req, res, next) => {
         const pokemonJS = fs_1.default.readFileSync(pokemonFilePath, "utf-8");
         let pokemonDB = JSON.parse(pokemonJS);
         const pokemonList = pokemonDB["pokemon"];
-        // console.log(pokemon);
         // check pokemon exists by id or by name
         if (pokemonList.find((x) => x.id === newId || x.name === name)) {
             throw (0, http_errors_1.default)("Pokemon exists");
@@ -210,7 +210,6 @@ pokemonRouter.post("/", (req, res, next) => {
             url,
         };
         pokemonList.push(newPokemon);
-        // console.log(pokemon);
         pokemonDB["pokemon"] = pokemonList;
         pokemonDB["totalPokemon"] = pokemonList.length;
         fs_1.default.writeFileSync(path_1.default.join(__dirname, "../../db.json"), JSON.stringify(pokemonDB));

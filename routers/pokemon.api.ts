@@ -246,8 +246,8 @@ pokemonRouter.post(
       const newId: number = parseInt(id);
 
       let newPokemonType: Array<string> = [
-        types[0].toLowerCase().trim() || "",
-        types[1].toLowerCase().trim() || "",
+        types[0]?.toLowerCase().trim() || "",
+        types[1]?.toLowerCase().trim() || "",
       ];
 
       newPokemonType = newPokemonType.filter((x: string) =>
@@ -261,7 +261,6 @@ pokemonRouter.post(
       const pokemonJS = fs.readFileSync(pokemonFilePath, "utf-8");
       let pokemonDB: object = JSON.parse(pokemonJS);
       const pokemonList: Array<inforPokemon> = pokemonDB["pokemon"];
-      // console.log(pokemon);
 
       // check pokemon exists by id or by name
       if (pokemonList.find((x) => x.id === newId || x.name === name)) {
@@ -276,7 +275,6 @@ pokemonRouter.post(
         url,
       };
       pokemonList.push(newPokemon);
-      // console.log(pokemon);
       pokemonDB["pokemon"] = pokemonList;
       pokemonDB["totalPokemon"] = pokemonList.length;
       fs.writeFileSync(
